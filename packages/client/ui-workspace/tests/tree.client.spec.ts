@@ -232,6 +232,23 @@ describe('deriveGroups', () => {
     expect(groups[0]!.sessions.map(session => session.id)).toEqual([sid('older'), sid('newer')])
   })
 
+  it('partitions pinned Workspaces ahead in Host order and marks them pinned', () => {
+    const sessions = list(summary('a', 1), summary('b', 2), summary('c', 3))
+    const workspaces = [
+      workspace('plain-a', ['a']),
+      { ...workspace('pinned-mid', ['b']), pinnedAt: '2026-01-02T00:00:00.000Z' },
+      workspace('plain-c', ['c']),
+    ]
+    const groups = deriveGroups(sessions, workspaces, noRows, noAttention, view(['pinned-mid']))
+    expect(groups.map(group => [group.key, group.pinned])).toEqual([
+      ['pinned-mid', true],
+      ['plain-a', false],
+      ['plain-c', false],
+    ])
+    // Group-internal session order stays Host order inside each partition.
+    expect(groups[0]!.sessions.map(session => session.id)).toEqual([sid('b')])
+  })
+
   it('projects pending-interaction state into grouped and flat rows', () => {
     const awaiting = { ...summary('awaiting', 10), running: true }
     const sessions = list(awaiting)
@@ -428,6 +445,30 @@ describe('deriveGroups', () => {
     expect(counts(statuses)).toEqual([1, 1, 1])
     statuses.set(child.id, status(undefined, { running: false }))
     expect(counts(statuses)).toEqual([0, 0, 0])
+  })
+
+  it('marks a group running from own or descendant activity, even while folded', () => {
+    const own = { ...summary('own', 1), running: true }
+    const ownFold = deriveGroups(
+      list(own), [workspace('own-proj', ['own'])], noRows, noAttention, view(),
+    )
+    expect(ownFold[0]!.hasRunningActivity).toBe(true)
+    expect(ownFold[0]!.sessions).toEqual([]) // folded: the fact derives from members, not rendered rows
+
+    const parent = summary('parent', 1)
+    const subagent = {
+      ...summary('subagent', 3), parentId: parent.id, origin: 'subagent' as const, running: true,
+    }
+    const delegatedFold = deriveGroups(
+      list(parent, subagent), [workspace('delegated-proj', ['parent', 'subagent'])],
+      noRows, noAttention, view(),
+    )
+    expect(delegatedFold[0]!.hasRunningActivity).toBe(true)
+
+    const idle = deriveGroups(
+      list(summary('quiet', 1)), [workspace('plain', ['quiet'])], noRows, noAttention, view(),
+    )
+    expect(idle[0]!.hasRunningActivity).toBe(false)
   })
 
   it('ignores fork lineage and sorts every ungrouped session as a top-level row', () => {

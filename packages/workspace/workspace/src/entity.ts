@@ -98,12 +98,27 @@ export class WorkspaceEntity implements Workspace {
     return this.record.updatedAt
   }
 
+  get pinnedAt(): string | undefined {
+    return this.record.pinnedAt
+  }
+
   get sessionIds(): readonly SessionId[] {
     return this.record.sessionIds.filter(id => this.host.sessionPath(id) === this.record.path)
   }
 
   async setTitle(title: string): Promise<void> {
     await this.mutate(record => ({ ...record, title }))
+  }
+
+  async setPinned(pinned: boolean): Promise<void> {
+    await this.mutate((record) => {
+      if (pinned === (record.pinnedAt !== undefined)) return record
+      // Timestamps on both directions keep the pin instant exact and let
+      // display surfaces order same-state rows deterministically when needed.
+      return pinned
+        ? { ...record, pinnedAt: new Date().toISOString() }
+        : { ...record, pinnedAt: undefined }
+    })
   }
 
   async attachSession(sessionId: SessionId): Promise<void> {

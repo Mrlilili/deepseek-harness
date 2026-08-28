@@ -58,6 +58,9 @@ async function bench() {
     title: 'new', sessionIds: [], createdAt: '0', updatedAt: '0',
   }))
   const rename = vi.fn(async () => ({}))
+  const setPinned = vi.fn(async () => ({}))
+  const open = vi.fn()
+  const clear = vi.fn()
   const selectPanel = vi.fn()
   ctx.provide('layout', { selectPanel, beginNavigation: () => new AbortController().signal })
   const search = vi.fn(async () => ({
@@ -98,6 +101,7 @@ async function bench() {
     create,
     initializeDefault,
     rename,
+    setPinned,
     delete: vi.fn(async () => undefined),
     insertBefore: vi.fn(async () => undefined),
     archiveSession: vi.fn(async () => undefined),
@@ -129,8 +133,9 @@ async function bench() {
   locale.setLocale('zh')
   ctx.provide('locale', locale)
   return {
-    ctx, slots: ctx.get('slots') as SlotRegistry, locale, create, rename,
-    retain, using, selectPanel, search, renameSession, binding, fork, pickDirectory, pinSession, unpinSession,
+    ctx, slots: ctx.get('slots') as SlotRegistry, locale, create, rename, setPinned,
+    open, clear, retain, using, selectPanel, search, renameSession, binding, fork, pickDirectory,
+    pinSession, unpinSession,
     workspacesSubscribe, initializeDefault,
     setWorkspaces: (snapshot: WorkspaceSnapshot): void => { workspaceSnapshot = snapshot },
     setSessions: (snapshot: SessionListState): void => { sessionSnapshot = snapshot },
@@ -537,6 +542,8 @@ describe('ui-workspace apply', () => {
     expect(browser.searchResultLimit).toBe(20)
     await browser.renameWorkspace('ws' as never, 'renamed')
     expect(b.rename).toHaveBeenCalledWith('ws', 'renamed')
+    await browser.pinWorkspace('ws' as never, true)
+    expect(b.setPinned).toHaveBeenCalledWith('ws', true)
     await browser.createWorkspace({ path: '/tmp/browser-project' })
     expect(b.create).toHaveBeenCalledWith({ path: '/tmp/browser-project' })
 

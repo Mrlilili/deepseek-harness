@@ -18,7 +18,8 @@ import { type CSSProperties, type ReactNode, useEffect, useMemo, useRef, useStat
 import clsx from 'clsx'
 import {
   Button, IconArchiveCheckOutlineRegular, IconArchiveOutlineRegular,
-  IconChevronsUpDownOutlineRegular, IconClockOutlineRegular, IconCloseFillRegular,
+  IconChevronsDownOutlineRegular, IconChevronsUpDownOutlineRegular,
+  IconChevronsUpOutlineRegular, IconClockOutlineRegular, IconCloseFillRegular,
   IconFlatListOutlineRegular, IconFolderCloseRegular, IconProjectAddOutlineRegular,
   IconSearchOutlineRegular, IconSlidersTwoOutlineRegular,
   IconWorkspaceTreeOutlineRegular, Menu, Modal, Tooltip,
@@ -243,6 +244,8 @@ type SessionTreeProps = Pick<
   rowState: SessionRowState
   /** Open the browser-owned rename dialog for a real Workspace group. */
   onRenameRequest: (workspaceId: WorkspaceId, currentTitle: string) => void
+  /** Pin or unpin a real Workspace group (commits without a dialog). */
+  onPinRequest: (workspaceId: WorkspaceId, pinned: boolean) => void
   /** Open the browser-owned delete-confirmation dialog for a real Workspace group. */
   onDeleteRequest: (workspaceId: WorkspaceId, currentTitle: string) => void
   /** Open the rename dialog from a row title double-click. */
@@ -258,7 +261,7 @@ function SessionTree({
   list, useSessionStatus, startSession, open, workspaces, ungroupedSessionIds,
   rowState,
   workspaceReady, animationResetKey, usePanelInfo,
-  onRenameRequest, onDeleteRequest, onSessionRenameRequest,
+  onRenameRequest, onPinRequest, onDeleteRequest, onSessionRenameRequest,
   renderSlot,
   insertWorkspaceBefore,
   nestWorkspaces, groupExpansion, setGroupExpanded,
@@ -309,6 +312,7 @@ function SessionTree({
     return [...workspaces.map(workspace => workspace.workspaceId), UNGROUPED_KEY]
       .filter(key => groupExpansion[key] ?? ancestorKeys.has(key))
   }, [groupExpansion, parents, workspaces])
+
   const groups = useMemo(
     () => deriveGroups(list, workspaces, rowState, statuses, {
       expandedGroups,
@@ -489,6 +493,10 @@ function SessionTree({
               rename: () => {
               /* v8 ignore next -- narrowing guard: the actions object exists only for real-workspace groups. */
                 if (group.workspaceId !== undefined) onRenameRequest(group.workspaceId, group.label)
+              },
+              pin: () => {
+              /* v8 ignore next -- narrowing guard: the actions object exists only for real-workspace groups. */
+                if (group.workspaceId !== undefined) onPinRequest(group.workspaceId, !group.pinned)
               },
               delete: () => {
               /* v8 ignore next -- narrowing guard: the actions object exists only for real-workspace groups. */
@@ -819,6 +827,7 @@ export function WorkspaceBrowser({
   requestSessionRename,
   notifyArchivedNotOpenable,
   renameWorkspace,
+  pinWorkspace,
   deleteWorkspace,
   insertWorkspaceBefore,
   unarchiveSession,
@@ -920,6 +929,13 @@ export function WorkspaceBrowser({
       ...workspaces.map(workspace => workspace.workspaceId),
     ])
   }, [actions.retainAccountKeys, workspacePhase, workspaces])
+  // Every group the grouped view can fold: each real Workspace plus the
+  // browser-local Ungrouped bucket. The toolbar toggle flips them as one unit.
+  const groupKeys = useMemo(
+    () => [UNGROUPED_KEY, ...workspaces.map(workspace => workspace.workspaceId as string)],
+    [workspaces],
+  )
+  const anyGroupExpanded = groupKeys.some(key => groupExpansion[key] === true)
   useEffect(() => {
     if (list.phase !== 'ready' || workspaceReady || orderBy !== 'manual' || currentBlank === undefined) return
     // A first prompt can end blank pinning before the Workspace baseline arrives.
@@ -1216,6 +1232,20 @@ export function WorkspaceBrowser({
               t={t}
             />
           )}
+          {/* Fold/open every group in one gesture. The label and glyph flip
+              with the grouped view's fold state: one action, not two buttons. */}
+          {wide && groupBy === 'workspace' && workspaces.length > 0 && (
+            <Tooltip label={t(anyGroupExpanded ? 'workspace.collapseAll' : 'workspace.expandAll')} side="bottom" delayMs={500}>
+              <button
+                type="button"
+                className={css.iconButton}
+                aria-label={t(anyGroupExpanded ? 'workspace.collapseAll' : 'workspace.expandAll')}
+                onClick={() => { actions.setGroupsExpanded(groupKeys, !anyGroupExpanded) }}
+              >
+                {anyGroupExpanded ? <IconChevronsUpOutlineRegular /> : <IconChevronsDownOutlineRegular />}
+              </button>
+            </Tooltip>
+          )}
           {/* Adding is the button's one action, so a composition with no
               picking affordance has nothing to offer here: the region hides the
               button rather than leaving a dead one in the header. */}
@@ -1338,6 +1368,16 @@ export function WorkspaceBrowser({
                   setRenameTarget({ workspaceId, currentTitle })
                   setRenameDraft(currentTitle)
                   setRenameError(null)
+                }}
+                onPinRequest={(workspaceId, pinned) => {
+                  // Pin is dialog-free: non-destructive and idempotent on the
+                  // Host, so the menu action commits directly; the row moves
+                  // when the upsert echo lands. Failures are non-fatal
+                  // console diagnostics, the same posture as reorder
+                  // rejections.
+                  pinWorkspace(workspaceId, pinned).catch((reason: unknown) => {
+                    console.warn('workspace pin rejected:', reason)
+                  })
                 }}
                 onDeleteRequest={(workspaceId, title) => {
                   setDeleteTarget({ workspaceId, title })

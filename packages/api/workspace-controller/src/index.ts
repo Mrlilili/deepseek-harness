@@ -22,6 +22,7 @@ import type {
   WorkspacePinSessionRequest,
   WorkspacePinValue,
   WorkspaceRenameRequest,
+  WorkspaceSetPinnedRequest,
   WorkspaceUnarchiveSessionRequest,
   WorkspaceUnpinSessionRequest,
   WorkspaceValue,
@@ -119,6 +120,16 @@ export class WorkspaceController extends TypertRemoteService {
   @Remote('rename')
   rename(request: WorkspaceRenameRequest): Promise<WorkspaceValue> {
     return this.commands.rename(request)
+  }
+
+  /**
+   * Pin or unpin one Workspace.
+   * @param request - Workspace identity and requested pin state.
+   * @returns the updated Workspace projection.
+   */
+  @Remote('setPinned')
+  setPinned(request: WorkspaceSetPinnedRequest): Promise<WorkspaceValue> {
+    return this.commands.setPinned(request)
   }
 
   /**

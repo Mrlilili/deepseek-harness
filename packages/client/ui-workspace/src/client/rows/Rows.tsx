@@ -3,12 +3,11 @@
  * all data and callbacks arrive via props. Hover swaps (folder->chevron,
  * time->ellipsis, action buttons) are CSS-only, and a session row's clipped
  * title marquees programmatically while the row is hovered. Workspace row
- * menus are visual-only except Rename/Delete. A Session row's "..." menu and
+ * menus are visual-only except Pin/Rename/Delete. A Session row's "..." menu and
  * its hover buttons are the `sidebar.workspaces.session.menu.item` and
  * `sidebar.workspaces.session.row.action` lists, rendered through the
  * browser's `renderSlot` with the menu's open state as the occurrence's hook
  * context; this package's own actions are entries like any plugin's. The
- * session and workspace hover cards are suppressed while a menu is open.
  */
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { RefObject } from 'react'
@@ -207,7 +206,7 @@ export function ProjectRowItem({ group, containsCurrentDescendant = false, onTog
   onToggle: () => void
   onCreate: () => void
   /** Real-Workspace actions; absent for the ungrouped bucket (no menu shown). */
-  actions?: { rename: () => void; delete: () => void } | undefined
+  actions?: { rename: () => void; pin: () => void; delete: () => void } | undefined
   /** Present only for real Workspace rows in the grouped view. */
   drag?: WorkspaceRowDragProps | undefined
   /** Host account home; POSIX home-rooted hover paths display as `~`. */
@@ -220,6 +219,7 @@ export function ProjectRowItem({ group, containsCurrentDescendant = false, onTog
   const active = containsCurrentDescendant || (group.expanded && group.containsCurrent)
   const [menuOpen, setMenuOpen] = useState(false)
   const workspaceMenuItems = [
+    { id: 'pin', label: t(row.pinned ? 'menu.unpin' : 'menu.pin'), icon: <IconPinFillRegular /> },
     { id: 'rename', label: t('rename'), icon: <IconEditOutlineRegular /> },
     { id: 'delete', label: t('delete.workspace'), icon: <IconTrashOutlineRegular />, danger: true },
   ]
@@ -249,6 +249,13 @@ export function ProjectRowItem({ group, containsCurrentDescendant = false, onTog
       <span className={css.projectText}>
         <span className={css.title}>{label}</span>
       </span>
+      {/* Pinned Workspaces carry a persistent pin mark; the slot sits ahead of
+          the hover-only actions so it survives pointer-leave. */}
+      {row.pinned && (
+        <span className={clsx(css.slot, css.pinMark)}>
+          <IconPinFillRegular />
+        </span>
+      )}
       <span className={css.rowActions}>
         {actions !== undefined && (
           <Menu
@@ -259,9 +266,10 @@ export function ProjectRowItem({ group, containsCurrentDescendant = false, onTog
               setMenuOpen(false)
               // Unknown ids leave before the dispatch: a future menu row must
               // not inherit the destructive branch as an else fallback.
-              /* v8 ignore next -- Menu can emit only the rename and delete rows supplied above. */
-              if (id !== 'rename' && id !== 'delete') return
-              if (id === 'rename') actions.rename()
+              /* v8 ignore next -- Menu can emit only the pin, rename, and delete rows supplied above. */
+              if (id !== 'pin' && id !== 'rename' && id !== 'delete') return
+              if (id === 'pin') actions.pin()
+              else if (id === 'rename') actions.rename()
               else actions.delete()
             }}
             portal

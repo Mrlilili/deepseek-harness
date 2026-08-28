@@ -77,11 +77,15 @@ export interface GroupNode {
   /** Workspace creation time (epoch ms); absent only for the ungrouped bucket. */
   createdAt: number | undefined
   label: string
+  /** The backing Workspace is pinned; absent only for the ungrouped bucket. */
+  pinned: boolean
   /** Total visible sessions in the group. */
   sessionCount: number
   expanded: boolean
   /** The group contains the selected session (active folder tint; supplied here so the renderer never scans). */
   containsCurrent: boolean
+  /** Any visible member runs (own or uninterrupted descendant activity); the folded header hoists one spinner. */
+  hasRunningActivity: boolean
   /** Visible session rows (empty while the group is folded). */
   sessions: readonly SessionNode[]
 }
@@ -124,6 +128,7 @@ interface Group {
   cwd: string | undefined
   createdAt: number | undefined
   label: string
+  pinned: boolean
   sessions: SessionSummary[]
 }
 
@@ -312,9 +317,10 @@ function buildGroup(
   cwd: string | undefined,
   createdAt: number | undefined,
   label: string,
+  pinned: boolean,
   members: readonly SessionSummary[],
 ): Group {
-  return { key, workspaceId, cwd, createdAt, label, sessions: [...members] }
+  return { key, workspaceId, cwd, createdAt, label, pinned, sessions: [...members] }
 }
 
 /** Apply a stored Ungrouped order and append newly loose Sessions by recency. */
@@ -335,10 +341,11 @@ function orderedUngrouped(
 }
 
 /**
- * Group Sessions by Workspace: one group per caller-ordered entity, with
- * members resolved from caller-ordered sessionIds. Sessions outside every
- * Workspace trail in the browser-local Ungrouped order, which falls back to
- * recency before that order is initialized.
+ * Group Sessions by Host Workspace: one group per entity, pinned Workspaces
+ * first and every partition in stable Host order, with members resolved from
+ * sessionIds in their stored order. Sessions outside every Workspace trail in
+ * the browser-local Ungrouped order, which falls back to recency before that
+ * order is initialized.
  */
 function groupByWorkspace(
   list: SessionListState,
@@ -348,9 +355,15 @@ function groupByWorkspace(
   ungroupedOrder: readonly string[] | undefined,
 ): Group[] {
   const current = mainSessionId(list)
+  // Pinned Workspaces lead without touching Host order: a stable partition
+  // keeps manual reorder meaningful inside each partition.
+  const ordered = [
+    ...workspaces.filter(workspace => workspace.pinnedAt !== undefined),
+    ...workspaces.filter(workspace => workspace.pinnedAt === undefined),
+  ]
   const groups: Group[] = []
   const accounted = new Set<SessionId>()
-  for (const workspace of workspaces) {
+  for (const workspace of ordered) {
     const members: SessionSummary[] = []
     for (const id of workspace.sessionIds) {
       const summary = list.byId[id]
@@ -361,7 +374,8 @@ function groupByWorkspace(
     }
     groups.push(buildGroup(
       workspace.workspaceId, workspace.workspaceId, workspace.path,
-      Date.parse(workspace.createdAt), workspace.title, members,
+      Date.parse(workspace.createdAt), workspace.title, workspace.pinnedAt !== undefined,
+      members,
     ))
   }
   const stray = list.ids
@@ -375,6 +389,7 @@ function groupByWorkspace(
       undefined,
       undefined,
       '',
+      false,
       orderedUngrouped(stray, ungroupedOrder, list.byId),
     ))
   }
@@ -454,17 +469,33 @@ export function deriveGroups(
     ? undefined
     : owningGroupKey(workspaces, current)
   const groups: GroupNode[] = []
+  const accountedWorkspaceIds = new Set(workspaces.flatMap(ws => ws.sessionIds))
   for (const g of groupByWorkspace(list, workspaces, archived, rowState.archivedFilter, view.ungroupedOrder)) {
     const expanded = expandedGroups.has(g.key)
+    // A folded group renders no session rows, so its own derivation carries the
+    // "something is running" fact for the header to hoist one spinner. Hidden
+    // subagent-origin members still count: they arrive through the same account
+    // or through a visible member's subagent catalog.
+    const accountIds = g.workspaceId === undefined
+      ? list.ids.filter(id => !accountedWorkspaceIds.has(id))
+      : workspaces.find(ws => ws.workspaceId === g.workspaceId)?.sessionIds ?? []
+    const hasRunningActivity = accountIds.some((id) => {
+      const summary = list.byId[id]
+      if (summary === undefined) return false
+      return (statuses.get(id)?.running ?? summary.running)
+        || runningChildCount(list, id, statuses) > 0
+    })
     groups.push({
       key: g.key,
       workspaceId: g.workspaceId,
       cwd: g.cwd,
       createdAt: g.createdAt,
       label: g.label,
+      pinned: g.pinned,
       sessionCount: g.sessions.length,
       expanded,
       containsCurrent: g.key === currentGroup,
+      hasRunningActivity,
       sessions: expanded
         ? sectionMembers(g.sessions, pinned, archived)
           .map(session => sessionNode(session, list, statuses, pinned, archived))

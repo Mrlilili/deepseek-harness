@@ -120,6 +120,7 @@ function mount(overrides: Partial<WorkspaceBrowserProps> = {}) {
     requestSessionRename: vi.fn(),
     notifyArchivedNotOpenable: vi.fn(),
     renameWorkspace: vi.fn(async () => {}),
+    pinWorkspace: vi.fn(async () => {}),
     deleteWorkspace: vi.fn(async () => {}),
     unarchiveSession: vi.fn(async () => {}),
     insertWorkspaceBefore: vi.fn(async () => {}),
@@ -847,6 +848,25 @@ describe('WorkspaceBrowser', () => {
     expect(screen.queryByText('beta-6')).toBeNull()
     expect(screen.getByRole('button', { name: '展开其余 6 个会话' })).toBeTruthy()
     expect(screen.getByRole('button', { name: '展开其余 12 个会话' })).toBeTruthy()
+  })
+
+  it('folds and opens every Workspace plus the Ungrouped bucket from one header toggle', () => {
+    const b = mount({
+      useSessions: hook(sessionState([summary('alpha-s', 3), summary('beta-s', 2), summary('loose-s', 1)])),
+      useWorkspaces: hook(workspaceState([workspace('alpha', ['alpha-s']), workspace('beta', ['beta-s'])])),
+    })
+    // All groups folded by default: the header offers the expand-all gesture.
+    fireEvent.click(screen.getByRole('button', { name: '全部展开' }))
+    expect(b.store.getSnapshot().groupExpansion).toEqual({ alpha: true, beta: true, '': true })
+    expect(screen.getByText('alpha-s')).toBeTruthy()
+    expect(screen.getByText('beta-s')).toBeTruthy()
+    expect(screen.getByText('loose-s')).toBeTruthy()
+
+    fireEvent.click(screen.getByRole('button', { name: '全部折叠' }))
+    expect(b.store.getSnapshot().groupExpansion).toEqual({ alpha: false, beta: false, '': false })
+    expect(screen.queryByText('alpha-s')).toBeNull()
+    expect(screen.queryByText('beta-s')).toBeNull()
+    expect(screen.queryByText('loose-s')).toBeNull()
   })
 
   it('keeps the blank New Session outside the five-row folding quota', () => {
@@ -2211,6 +2231,36 @@ describe('WorkspaceBrowser', () => {
     fireEvent.change(screen.getByLabelText('工作区名称'), { target: { value: 'Other' } })
     fireEvent.click(screen.getByRole('button', { name: '重命名' }))
     await waitFor(() => { expect(screen.getByRole('alert').textContent).toBe('denied') })
+  })
+
+  it('pins and unpins through the row menu without a dialog; rejections stay non-fatal', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+    try {
+      const pinWorkspace = vi.fn(async () => {})
+      mount({
+        useWorkspaces: hook(workspaceState([
+          { ...workspace('alpha', [], 'Alpha'), pinnedAt: '2026-01-02T00:00:00.000Z' },
+          workspace('beta', [], 'Beta'),
+        ])),
+        pinWorkspace,
+      })
+      // The pinned Workspace leads the tree.
+      expect(screen.getAllByRole('treeitem')[0]!.textContent).toContain('Alpha')
+      fireEvent.click(screen.getByRole('button', { name: '工作区“Alpha”的操作' }))
+      fireEvent.click(screen.getByRole('menuitem', { name: '取消置顶' }))
+      expect(pinWorkspace).toHaveBeenCalledWith(wid('alpha'), false)
+      fireEvent.click(screen.getByRole('button', { name: '工作区“Beta”的操作' }))
+      fireEvent.click(screen.getByRole('menuitem', { name: '置顶工作区' }))
+      expect(pinWorkspace).toHaveBeenCalledWith(wid('beta'), true)
+      // A rejected pin keeps the tree as-is and opens no dialog.
+      pinWorkspace.mockRejectedValueOnce(new Error('pin rejected'))
+      fireEvent.click(screen.getByRole('button', { name: '工作区“Beta”的操作' }))
+      fireEvent.click(screen.getByRole('menuitem', { name: '置顶工作区' }))
+      await waitFor(() => { expect(warn).toHaveBeenCalledWith('workspace pin rejected:', expect.any(Error)) })
+      expect(screen.queryByRole('dialog')).toBeNull()
+    } finally {
+      warn.mockRestore()
+    }
   })
 
   it('confirms Workspace deletion, explains retention, and blocks duplicate submission', async () => {

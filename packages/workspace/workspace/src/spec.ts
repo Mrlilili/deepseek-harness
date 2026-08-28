@@ -19,7 +19,10 @@ const sessionId = z.string().transform(value => brandString<SessionId>(value))
 /**
  * Durable shape of one workspace record. `path` is the `fs.realpath` canon
  * stamped at create; `sessionIds` is the ordered ownership account (array
- * order is display order); timestamps are ISO-8601 strings.
+ * order is display order); timestamps are ISO-8601 strings. `pinnedAt` is the
+ * optional ISO-8601 pin instant; records written before the field parse
+ * unchanged (`undefined` = unpinned), so the additive extension keeps the
+ * domain format without a version bump.
  */
 export const workspaceRecord = z.object({
   path: z.string(),
@@ -27,6 +30,7 @@ export const workspaceRecord = z.object({
   sessionIds: z.array(sessionId),
   createdAt: z.string(),
   updatedAt: z.string(),
+  pinnedAt: z.string().optional(),
 })
 
 /** One stored workspace record, inferred from {@link workspaceRecord}. */
