@@ -101,6 +101,18 @@ export class ClientWorkspaceModel implements WorkspaceFollowSink {
   }
 
   /**
+   * Pin or unpin a Workspace and merge the unary result immediately.
+   * @param workspaceId - target Workspace.
+   * @param pinned - requested pin state.
+   * @returns generated Remote result.
+   */
+  async setPinned(workspaceId: WorkspaceId, pinned: boolean): Promise<RemoteResult<WorkspaceValue>> {
+    const result = await this.remote.setPinned({ workspaceId, pinned })
+    if (result.ok) this.upsert(result.value.workspace)
+    return result
+  }
+
+  /**
    * Delete a Workspace and remove it from the local projection immediately.
    * @param workspaceId - target Workspace.
    * @returns generated Remote result.

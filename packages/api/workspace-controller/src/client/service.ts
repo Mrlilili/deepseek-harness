@@ -47,6 +47,13 @@ export interface IWorkspaces {
    */
   rename(workspaceId: WorkspaceId, title: string): Promise<WorkspaceView>
   /**
+   * Pin or unpin a Workspace.
+   * @param workspaceId - target Workspace.
+   * @param pinned - requested pin state.
+   * @returns the updated Workspace.
+   */
+  setPinned(workspaceId: WorkspaceId, pinned: boolean): Promise<WorkspaceView>
+  /**
    * Delete a Workspace registration without deleting Sessions or files.
    * @param workspaceId - target Workspace.
    */
@@ -98,6 +105,12 @@ export class WorkspaceController extends Service implements IWorkspaces {
   async rename(workspaceId: WorkspaceId, title: string): Promise<WorkspaceView> {
     const result = await this.model.rename(workspaceId, title)
     if (!result.ok) throw commandError('rename', result.error)
+    return result.value.workspace
+  }
+
+  async setPinned(workspaceId: WorkspaceId, pinned: boolean): Promise<WorkspaceView> {
+    const result = await this.model.setPinned(workspaceId, pinned)
+    if (!result.ok) throw commandError('pin', result.error)
     return result.value.workspace
   }
 

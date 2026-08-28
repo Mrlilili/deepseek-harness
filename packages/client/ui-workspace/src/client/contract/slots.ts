@@ -121,6 +121,12 @@ export type WorkspaceBrowserInjected = {
   forkSession: (sessionId: SessionId) => void
   /** Rename a Host Workspace (rejects on name conflict; resolves on durability). */
   renameWorkspace: (workspaceId: WorkspaceId, title: string) => Promise<void>
+  /**
+   * Pin or unpin a Host Workspace (idempotent on the Host; resolves on
+   * durability). Display order stays Host order; browsers partition
+   * pinned-first at render time.
+   */
+  pinWorkspace: (workspaceId: WorkspaceId, pinned: boolean) => Promise<void>
   /** Delete only a Host Workspace registration; directory and Session logs remain. */
   deleteWorkspace: (workspaceId: WorkspaceId) => Promise<void>
   /**

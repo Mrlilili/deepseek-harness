@@ -49,6 +49,13 @@ export interface Workspace {
   readonly updatedAt: string
 
   /**
+   * ISO-8601 pin instant, or `undefined` while unpinned. Display surfaces
+   * partition pinned workspaces ahead of unpinned ones; the pin instant only
+   * records when the pin was set and never participates in ordering.
+   */
+  readonly pinnedAt: string | undefined
+
+  /**
    * Header-validated sessions in manually owned order: a new session is
    * prepended at attach, explicit reordering goes through
    * `insertSessionBefore`, and activity never reorders. The durable candidate
@@ -64,6 +71,16 @@ export interface Workspace {
    * @returns resolution after durability.
    */
   setTitle(title: string): Promise<void>
+
+  /**
+   * Pin or unpin this workspace durably. Pinning stamps `pinnedAt`; unpinning
+   * clears it. Both directions are idempotent: a request matching the current
+   * state resolves without writing. The durable registry order is untouched —
+   * pinned-first display order is a presentation decision.
+   * @param pinned - `true` pins, `false` unpins.
+   * @returns resolution after durability.
+   */
+  setPinned(pinned: boolean): Promise<void>
 
   /**
    * Prepend a session to this workspace's candidate account. An already

@@ -91,6 +91,7 @@ function mount(overrides: Partial<WorkspaceBrowserProps> = {}) {
     renameSession: vi.fn(async () => {}),
     forkSession: vi.fn(),
     renameWorkspace: vi.fn(async () => {}),
+    pinWorkspace: vi.fn(async () => {}),
     deleteWorkspace: vi.fn(async () => {}),
     archiveSession: vi.fn(async () => {}),
     insertWorkspaceBefore: vi.fn(async () => {}),
@@ -1412,6 +1413,36 @@ describe('WorkspaceBrowser', () => {
     fireEvent.change(screen.getByLabelText('工作区名称'), { target: { value: 'Other' } })
     fireEvent.click(screen.getByRole('button', { name: '重命名' }))
     await waitFor(() => { expect(screen.getByRole('alert').textContent).toBe('denied') })
+  })
+
+  it('pins and unpins through the row menu without a dialog; rejections stay non-fatal', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+    try {
+      const pinWorkspace = vi.fn(async () => {})
+      mount({
+        useWorkspaces: hook(workspaceState([
+          { ...workspace('alpha', [], 'Alpha'), pinnedAt: '2026-01-02T00:00:00.000Z' },
+          workspace('beta', [], 'Beta'),
+        ])),
+        pinWorkspace,
+      })
+      // The pinned Workspace leads the tree.
+      expect(screen.getAllByRole('treeitem')[0]!.textContent).toContain('Alpha')
+      fireEvent.click(screen.getByRole('button', { name: '工作区“Alpha”的操作' }))
+      fireEvent.click(screen.getByRole('menuitem', { name: '取消置顶' }))
+      expect(pinWorkspace).toHaveBeenCalledWith(wid('alpha'), false)
+      fireEvent.click(screen.getByRole('button', { name: '工作区“Beta”的操作' }))
+      fireEvent.click(screen.getByRole('menuitem', { name: '置顶工作区' }))
+      expect(pinWorkspace).toHaveBeenCalledWith(wid('beta'), true)
+      // A rejected pin keeps the tree as-is and opens no dialog.
+      pinWorkspace.mockRejectedValueOnce(new Error('pin rejected'))
+      fireEvent.click(screen.getByRole('button', { name: '工作区“Beta”的操作' }))
+      fireEvent.click(screen.getByRole('menuitem', { name: '置顶工作区' }))
+      await waitFor(() => { expect(warn).toHaveBeenCalledWith('workspace pin rejected:', expect.any(Error)) })
+      expect(screen.queryByRole('dialog')).toBeNull()
+    } finally {
+      warn.mockRestore()
+    }
   })
 
   it('confirms Workspace deletion, explains retention, and blocks duplicate submission', async () => {

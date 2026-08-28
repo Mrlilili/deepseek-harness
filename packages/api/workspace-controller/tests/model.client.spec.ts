@@ -14,6 +14,7 @@ import type {
   WorkspaceInsertSessionBeforeRequest,
   WorkspaceOrderValue,
   WorkspaceRenameRequest,
+  WorkspaceSetPinnedRequest,
   WorkspaceValue,
   WorkspaceId,
   WorkspaceView,
@@ -69,6 +70,13 @@ class FakeWorkspaceRemote implements WorkspaceRemote {
     Promise.resolve(remoteOk({ workspace: workspace(request.path.split('/').pop() ?? 'workspace'), created: true }))
   onRename: (request: WorkspaceRenameRequest) => Promise<RemoteResult<WorkspaceValue>> = request =>
     Promise.resolve(remoteOk({ workspace: { ...workspace(String(request.workspaceId)), title: request.title } }))
+  onSetPinned: (request: WorkspaceSetPinnedRequest) => Promise<RemoteResult<WorkspaceValue>> = request =>
+    Promise.resolve(remoteOk({
+      workspace: {
+        ...workspace(String(request.workspaceId)),
+        ...(request.pinned ? { pinnedAt: '2026-01-02T00:00:00.000Z' } : {}),
+      },
+    }))
   onDelete: (_request: WorkspaceDeleteRequest) => Promise<RemoteResult<WorkspaceDeleteValue>> = () =>
     Promise.resolve(remoteOk({ deleted: true }))
   onInsertBefore: (
@@ -93,6 +101,11 @@ class FakeWorkspaceRemote implements WorkspaceRemote {
   rename(request: WorkspaceRenameRequest): Promise<RemoteResult<WorkspaceValue>> {
     this.record('rename', request)
     return this.onRename(request)
+  }
+
+  setPinned(request: WorkspaceSetPinnedRequest): Promise<RemoteResult<WorkspaceValue>> {
+    this.record('setPinned', request)
+    return this.onSetPinned(request)
   }
 
   delete(request: WorkspaceDeleteRequest): Promise<RemoteResult<WorkspaceDeleteValue>> {
@@ -306,6 +319,25 @@ describe('ClientWorkspaceModel', () => {
     remote.onArchiveSession = request => Promise.resolve(remoteOk({ archivedSessionIds: [request.sessionId] }))
     await expect(model.archiveSession(sid('fresh'))).resolves.toMatchObject({ ok: true })
     expect(model.getSnapshot().archivedSessionIds).toEqual(['fresh'])
+  })
+
+  it('pins through the remote verb, merges the returned row, and keeps failures unchanged', async () => {
+    const remote = new FakeWorkspaceRemote()
+    const model = modelFor(remote)
+    baseline(model, [workspace('one')])
+
+    await expect(model.setPinned(wid('one'), true)).resolves.toMatchObject({ ok: true })
+    expect(remote.calls).toContainEqual({
+      method: 'setPinned',
+      request: { workspaceId: 'one', pinned: true },
+    })
+    expect(model.getSnapshot().items[0]?.pinnedAt).toBe('2026-01-02T00:00:00.000Z')
+
+    remote.onSetPinned = () => Promise.resolve(workspaceError({
+      code: 'workspace-not-found', message: 'gone', details: { workspaceId: wid('one') },
+    }))
+    await expect(model.setPinned(wid('one'), false)).resolves.toMatchObject({ ok: false })
+    expect(model.getSnapshot().items[0]?.pinnedAt).toBe('2026-01-02T00:00:00.000Z')
   })
 
   it('keeps the newest row and places Workspaces missing from partial orders last', async () => {

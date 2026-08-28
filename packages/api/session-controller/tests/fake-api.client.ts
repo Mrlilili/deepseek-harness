@@ -183,6 +183,16 @@ export class FakeApiClient {
   onWorkspaceRename: (payload: unknown) => Promise<RemoteResult<{ workspace: WorkspaceView }>> =
     () => Promise.resolve(ok({ workspace: fakeWorkspace('fk-ws') }))
 
+  onWorkspaceSetPinned: (payload: unknown) => Promise<RemoteResult<{ workspace: WorkspaceView }>> =
+    payload => Promise.resolve(remoteOk({
+      workspace: {
+        ...fakeWorkspace('fk-ws'),
+        ...(payload as { pinned: boolean }).pinned
+          ? { pinnedAt: '2026-01-02T00:00:00.000Z' }
+          : {},
+      },
+    }))
+
   onWorkspaceDelete: (payload: unknown) => Promise<RemoteResult<{ deleted: true }>> =
     () => Promise.resolve(ok({ deleted: true }))
 
@@ -257,6 +267,7 @@ export class FakeApiClient {
       workspace: {
         create: payload => this.record('workspace.create', payload, this.onWorkspaceCreate(payload)),
         rename: payload => this.record('workspace.rename', payload, this.onWorkspaceRename(payload)),
+        setPinned: payload => this.record('workspace.setPinned', payload, this.onWorkspaceSetPinned(payload)),
         delete: payload => this.record('workspace.delete', payload, this.onWorkspaceDelete(payload)),
         insertBefore: payload => this.record(
           'workspace.insertBefore',

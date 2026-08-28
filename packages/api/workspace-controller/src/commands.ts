@@ -21,6 +21,7 @@ import type {
   WorkspaceInsertSessionBeforeRequest,
   WorkspaceOrderValue,
   WorkspaceRenameRequest,
+  WorkspaceSetPinnedRequest,
   WorkspaceValue,
 } from './types.ts'
 
@@ -80,6 +81,19 @@ export class WorkspaceCommands {
         }
         await workspace.setTitle(title)
       }
+      return { workspace: workspaceView(workspace) }
+    })
+  }
+
+  /**
+   * Pin or unpin one Workspace after resolving its identity.
+   * @param request - Workspace identity and requested pin state.
+   * @returns the updated Workspace projection.
+   */
+  setPinned(request: WorkspaceSetPinnedRequest): Promise<WorkspaceValue> {
+    return this.enqueue(async () => {
+      const workspace = this.requireWorkspace(request.workspaceId)
+      await workspace.setPinned(request.pinned)
       return { workspace: workspaceView(workspace) }
     })
   }

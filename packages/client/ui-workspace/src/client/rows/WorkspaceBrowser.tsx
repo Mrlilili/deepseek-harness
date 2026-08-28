@@ -258,6 +258,8 @@ type SessionTreeProps = Pick<
   archivedSessionIds: readonly SessionNode['id'][]
   /** Open the browser-owned rename dialog for a real Workspace group. */
   onRenameRequest: (workspaceId: WorkspaceId, currentTitle: string) => void
+  /** Pin or unpin a real Workspace group (commits without a dialog). */
+  onPinRequest: (workspaceId: WorkspaceId, pinned: boolean) => void
   /** Open the browser-owned delete-confirmation dialog for a real Workspace group. */
   onDeleteRequest: (workspaceId: WorkspaceId, currentTitle: string) => void
   /** Open the browser-owned session rename dialog. */
@@ -276,7 +278,7 @@ type SessionTreeProps = Pick<
 function SessionTree({
   useSessions, useSessionPendingInteraction, startSession, open, forkSession, workspaces, archivedSessionIds,
   workspaceReady, usePanelInfo,
-  onRenameRequest, onDeleteRequest, onSessionRename, onSessionArchive,
+  onRenameRequest, onPinRequest, onDeleteRequest, onSessionRename, onSessionArchive,
   insertWorkspaceBefore, insertSessionBefore, orderBy,
   groupExpansion, setGroupExpanded,
   sessionOrderByAccount, sessionUpdatedAtByAccount, syncSessionOrderAccount, setSessionOrder, home, t,
@@ -542,6 +544,10 @@ function SessionTree({
                     rename: () => {
                     /* v8 ignore next -- narrowing guard: the actions object exists only for real-workspace groups. */
                       if (group.workspaceId !== undefined) onRenameRequest(group.workspaceId, group.label)
+                    },
+                    pin: () => {
+                    /* v8 ignore next -- narrowing guard: the actions object exists only for real-workspace groups. */
+                      if (group.workspaceId !== undefined) onPinRequest(group.workspaceId, !group.pinned)
                     },
                     delete: () => {
                     /* v8 ignore next -- narrowing guard: the actions object exists only for real-workspace groups. */
@@ -850,6 +856,7 @@ export function WorkspaceBrowser({
   renameSession,
   forkSession,
   renameWorkspace,
+  pinWorkspace,
   deleteWorkspace,
   insertWorkspaceBefore,
   archiveSession,
@@ -1317,6 +1324,16 @@ export function WorkspaceBrowser({
                   setRenameTarget({ workspaceId, currentTitle })
                   setRenameDraft(currentTitle)
                   setRenameError(null)
+                }}
+                onPinRequest={(workspaceId, pinned) => {
+                  // Pin is dialog-free: non-destructive and idempotent on the
+                  // Host, so the menu action commits directly; the row moves
+                  // when the upsert echo lands. Failures are non-fatal
+                  // console diagnostics, the same posture as reorder
+                  // rejections.
+                  pinWorkspace(workspaceId, pinned).catch((reason: unknown) => {
+                    console.warn('workspace pin rejected:', reason)
+                  })
                 }}
                 onDeleteRequest={(workspaceId, title) => {
                   setDeleteTarget({ workspaceId, title })

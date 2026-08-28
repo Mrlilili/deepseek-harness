@@ -24,6 +24,8 @@ export interface WorkspaceView {
   readonly createdAt: string
   /** ISO-8601 last-mutation instant. */
   readonly updatedAt: string
+  /** ISO-8601 pin instant; absent while unpinned. Display order stays Host order. */
+  readonly pinnedAt?: string | undefined
 }
 
 declare module '@deepseek-ai/dsh-typert-protocol' {
@@ -64,6 +66,13 @@ export interface WorkspaceCreateValue {
 export interface WorkspaceRenameRequest {
   readonly workspaceId: WorkspaceId
   readonly title: string
+}
+
+/** Workspace pin-state mutation. */
+export interface WorkspaceSetPinnedRequest {
+  readonly workspaceId: WorkspaceId
+  /** `true` pins, `false` unpins; matching the current state resolves without change. */
+  readonly pinned: boolean
 }
 
 /** Workspace mutation returning the complete changed row. */

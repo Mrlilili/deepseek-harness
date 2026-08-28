@@ -903,6 +903,61 @@ describe('workspace mutation and status', () => {
   })
 })
 
+describe('workspace pin state', () => {
+  it('pins durably, unpins, and keeps both directions idempotent', async () => {
+    const dir = await makeDir('pin-home')
+    const result = await harness()
+    const workspace = await result.registry.create(dir)
+    expect(workspace.pinnedAt).toBeUndefined()
+    const changesAtStart = result.changes.filter(change => change.table === 'workspaces').length
+
+    // Unpinning an unpinned Workspace is a no-op: no write, no change.
+    await workspace.setPinned(false)
+    expect(result.changes.filter(change => change.table === 'workspaces').length).toBe(changesAtStart)
+
+    await workspace.setPinned(true)
+    expect(typeof workspace.pinnedAt).toBe('string')
+    expect(storedRecord(result.pool, String(workspace.id)).pinnedAt).toBe(workspace.pinnedAt)
+    const pinChanges = result.changes.filter(change => change.table === 'workspaces').length
+
+    // The idempotent repeat neither rewrites the medium nor emits a change.
+    await workspace.setPinned(true)
+    expect(result.changes.filter(change => change.table === 'workspaces').length).toBe(pinChanges)
+
+    await workspace.setPinned(false)
+    expect(workspace.pinnedAt).toBeUndefined()
+    expect(storedRecord(result.pool, String(workspace.id)).pinnedAt).toBeUndefined()
+  })
+
+  it('leaves registry order untouched and restores pin state across restarts', async () => {
+    const dirA = await makeDir('pin-restart-a')
+    const dirB = await makeDir('pin-restart-b')
+    const pool = new MemoryMediaPool()
+    const first = await harness({ pool })
+    const a = await first.registry.create(dirA)
+    const b = await first.registry.create(dirB)
+    const orderBefore = storedState(first.pool).workspaceIds
+    await b.setPinned(true)
+    // Pinning is a record write only: the durable display order is untouched.
+    expect(storedState(first.pool).workspaceIds).toEqual(orderBefore)
+    await first.fiber.dispose()
+
+    const second = await harness({ pool })
+    expect(second.registry.get(b.id)?.pinnedAt).toBe(b.pinnedAt)
+    expect(second.registry.get(a.id)?.pinnedAt).toBeUndefined()
+    await second.fiber.dispose()
+
+    // A record written before the field existed parses as unpinned.
+    const legacyId = WorkspaceId('00000000-0000-4000-8000-00000000000b')
+    const legacy = storedPool(
+      [[legacyId, record(dirA, [])]],
+      { initialized: true, workspaceIds: [legacyId] },
+    )
+    const upgraded = await harness({ pool: legacy })
+    expect(upgraded.registry.get(legacyId)?.pinnedAt).toBeUndefined()
+  })
+})
+
 describe('registry-global session archive', () => {
   it('archives durably in order, idempotently skips repeats, and leaves accounting untouched', async () => {
     const dir = await makeDir('archive-home')

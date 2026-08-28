@@ -936,3 +936,15 @@ export const IconArchiveOutline20 = ({ size = 20, className }: IconProps) => (
     <path d="M12.7962 12.5661V11.0832H7.20548V12.5661L12.7962 12.5661Z" fill="currentColor" />
   </svg>
 )
+
+/** pin_outline_16 (workspace pin affordance: pushpin head, taper, and stem) */
+export const IconPinOutline16 = ({ size = 16, className }: IconProps) => (
+  <svg width={size} height={size} className={className} viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path
+      d="M5.2 1.65h5.6c.3 0 .55.25.55.55v3.4c0 .42-.17.83-.47 1.13l-.71.71a1.13 1.13 0 0 0-.33.8v1.01a.5.5 0 0 1-.5.5H6.66a.5.5 0 0 1-.5-.5V9.24c0-.3-.12-.59-.33-.8l-.71-.71a1.6 1.6 0 0 1-.47-1.13V2.2c0-.3.25-.55.55-.55Z"
+      stroke="currentColor"
+      strokeWidth="1.3"
+    />
+    <path d="M8 10.75v3.6" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+  </svg>
+)

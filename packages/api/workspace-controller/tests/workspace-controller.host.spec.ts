@@ -222,6 +222,20 @@ describe('WorkspaceController commands', () => {
     await expect(controller.archiveSession({ sessionId: SessionId('unknown') }))
       .rejects.toMatchObject({ code: 'session/not-found' })
   })
+
+  it('pins and unpins Workspaces through the row command and rejects unknown ids', async () => {
+    const { controller, root } = await harness()
+    const created = await controller.create({ path: stageDir(root, 'pinned') })
+    expect(created.workspace.pinnedAt).toBeUndefined()
+
+    const pinned = await controller.setPinned({ workspaceId: created.workspace.workspaceId, pinned: true })
+    expect(typeof pinned.workspace.pinnedAt).toBe('string')
+    // Unpinning clears the field on the returned projection.
+    const unpinned = await controller.setPinned({ workspaceId: created.workspace.workspaceId, pinned: false })
+    expect(unpinned.workspace.pinnedAt).toBeUndefined()
+    await expect(controller.setPinned({ workspaceId: 'missing' as WorkspaceId, pinned: true }))
+      .rejects.toMatchObject({ failure: { code: 'workspace-not-found' } })
+  })
 })
 
 describe('WorkspaceController follow', () => {
@@ -268,6 +282,12 @@ describe('WorkspaceController follow', () => {
     await expect(nextFrame(iterator)).resolves.toMatchObject({
       type: 'upsert', workspace: { title: 'renamed' },
     })
+    // A pin is a record mutation, so followers receive its upsert with the pin instant.
+    await controller.setPinned({ workspaceId: first.workspace.workspaceId, pinned: true })
+    const pinFrame = await nextFrame(iterator)
+    if (pinFrame.type !== 'upsert') throw new Error('expected an upsert frame after setPinned')
+    expect(pinFrame.workspace).toMatchObject({ workspaceId: first.workspace.workspaceId })
+    expect(typeof pinFrame.workspace.pinnedAt).toBe('string')
 
     const second = await controller.create({ path: stageDir(root, 'second') })
     await expect(nextFrame(iterator)).resolves.toMatchObject({

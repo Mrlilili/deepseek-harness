@@ -49,7 +49,7 @@ Search is a header action while collapsed and expands across the title and trail
 
 ## Consequences
 
-- Workspace order is durable and shared through the Host, while grouping, open state, per-account Session view order, and query state remain browser-local presentation preferences. Ungrouped and the flat list support the same drag and promotion rules, but their orders are browser-local because neither has one Workspace account.
+- Workspace order is durable and shared through the Host, while grouping, open state, per-account Session view order, and query state remain browser-local presentation preferences. Ungrouped and the flat list support the same drag and promotion rules, but their orders are browser-local because neither has one Workspace account. Pinned Workspaces are durable record state ([Workspace pin Agent Note](2026-08-28-workspace-pin.md)) that partitions the grouped tree at render time without touching the durable order.
 - Last updated performs a complete recency sort on entry, then preserves manual adjustments until a user prompt or steer advances one Session and moves it to the front. Returning to Manual preserves every current position.
 - A newly selected blank New Session row enters grouped and flat orders first once. Grouped folding renders it in addition to five non-blank rows until its first prompt, then applies the ordinary quota.
 - Opening a Workspace never shows more than five non-blank Sessions without an explicit **Show more** gesture or search-result navigation; the selected blank New Session may add one provisional row. Closing the Workspace resets transient remainder expansion.

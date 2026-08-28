@@ -94,6 +94,19 @@ export class TestWorkspaces implements IWorkspaces {
   }
 
   /**
+   * Pin or unpin a Workspace (recorded). The default echoes a minimal view.
+   * @param workspaceId - target workspace.
+   * @param pinned - requested pin state.
+   * @returns the updated view.
+   */
+  async setPinned(workspaceId: WorkspaceId, pinned: boolean): Promise<WorkspaceView> {
+    this.calls.push({ method: 'setPinned', args: [workspaceId, pinned] })
+    const stub = this.stubs.get('setPinned')
+    if (stub !== undefined) return await (stub(workspaceId, pinned) as Promise<WorkspaceView>)
+    return { workspaceId, pinnedAt: pinned ? new Date().toISOString() : undefined } as unknown as WorkspaceView
+  }
+
+  /**
    * Delete a Workspace (recorded; default no-op).
    * @param workspaceId - target workspace.
    */

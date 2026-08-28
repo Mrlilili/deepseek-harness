@@ -57,6 +57,23 @@ describe('deriveGroups', () => {
     expect(groups[0]!.sessions.map(session => session.id)).toEqual([sid('older'), sid('newer')])
   })
 
+  it('partitions pinned Workspaces ahead in Host order and marks them pinned', () => {
+    const sessions = list(summary('a', 1), summary('b', 2), summary('c', 3))
+    const workspaces = [
+      workspace('plain-a', ['a']),
+      { ...workspace('pinned-mid', ['b']), pinnedAt: '2026-01-02T00:00:00.000Z' },
+      workspace('plain-c', ['c']),
+    ]
+    const groups = deriveGroups(sessions, workspaces, noArchive, noAttention, view(['pinned-mid']))
+    expect(groups.map(group => [group.key, group.pinned])).toEqual([
+      ['pinned-mid', true],
+      ['plain-a', false],
+      ['plain-c', false],
+    ])
+    // Group-internal session order stays Host order inside each partition.
+    expect(groups[0]!.sessions.map(session => session.id)).toEqual([sid('b')])
+  })
+
   it('projects pending-interaction state into grouped and flat rows', () => {
     const awaiting = { ...summary('awaiting', 10), running: true }
     const sessions = list(awaiting)

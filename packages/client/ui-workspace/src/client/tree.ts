@@ -70,6 +70,8 @@ export interface GroupNode {
   /** Workspace creation time (epoch ms); absent only for the ungrouped bucket. */
   createdAt: number | undefined
   label: string
+  /** The backing Workspace is pinned; absent only for the ungrouped bucket. */
+  pinned: boolean
   /** Total visible sessions in the group. */
   sessionCount: number
   expanded: boolean
@@ -115,6 +117,7 @@ interface Group {
   cwd: string | undefined
   createdAt: number | undefined
   label: string
+  pinned: boolean
   sessions: SessionSummary[]
 }
 
@@ -169,6 +172,7 @@ function buildGroup(
   cwd: string | undefined,
   createdAt: number | undefined,
   label: string,
+  pinned: boolean,
   members: readonly SessionSummary[],
   order: 'account' | 'recency',
 ): Group {
@@ -176,7 +180,7 @@ function buildGroup(
   // Real Workspace order comes from sessionIds. Ungrouped falls back to
   // recency until the browser supplies its persisted local order.
   if (order === 'recency') sessions.sort(byRecency)
-  return { key, workspaceId, cwd, createdAt, label, sessions }
+  return { key, workspaceId, cwd, createdAt, label, pinned, sessions }
 }
 
 /** Apply a stored Ungrouped order and append newly loose Sessions by recency. */
@@ -198,10 +202,11 @@ function orderedUngrouped(members: readonly SessionSummary[], stored: readonly s
 }
 
 /**
- * Group Sessions by Host Workspace: one group per entity in stable Host
- * order, with members resolved from sessionIds in their stored order. Sessions
- * outside every Workspace trail in the browser-local Ungrouped order, which
- * falls back to recency before that order is initialized.
+ * Group Sessions by Host Workspace: one group per entity, pinned Workspaces
+ * first and every partition in stable Host order, with members resolved from
+ * sessionIds in their stored order. Sessions outside every Workspace trail in
+ * the browser-local Ungrouped order, which falls back to recency before that
+ * order is initialized.
  */
 function groupByWorkspace(
   list: SessionListState,
@@ -209,9 +214,15 @@ function groupByWorkspace(
   archived: ReadonlySet<SessionId>,
   ungroupedOrder: readonly string[] | undefined,
 ): Group[] {
+  // Pinned Workspaces lead without touching Host order: a stable partition
+  // keeps manual reorder meaningful inside each partition.
+  const ordered = [
+    ...workspaces.filter(workspace => workspace.pinnedAt !== undefined),
+    ...workspaces.filter(workspace => workspace.pinnedAt === undefined),
+  ]
   const groups: Group[] = []
   const accounted = new Set<SessionId>()
-  for (const workspace of workspaces) {
+  for (const workspace of ordered) {
     const members: SessionSummary[] = []
     for (const id of workspace.sessionIds) {
       const summary = list.byId[id]
@@ -222,7 +233,8 @@ function groupByWorkspace(
     }
     groups.push(buildGroup(
       workspace.workspaceId, workspace.workspaceId, workspace.path,
-      Date.parse(workspace.createdAt), workspace.title, members, 'account',
+      Date.parse(workspace.createdAt), workspace.title, workspace.pinnedAt !== undefined,
+      members, 'account',
     ))
   }
   const stray = list.ids
@@ -236,6 +248,7 @@ function groupByWorkspace(
       undefined,
       undefined,
       '',
+      false,
       ungroupedOrder === undefined ? stray : orderedUngrouped(stray, ungroupedOrder),
       ungroupedOrder === undefined ? 'recency' : 'account',
     ))
@@ -311,6 +324,7 @@ export function deriveGroups(
       cwd: g.cwd,
       createdAt: g.createdAt,
       label: g.label,
+      pinned: g.pinned,
       sessionCount: g.sessions.length,
       expanded,
       containsCurrent: g.key === currentGroup,
