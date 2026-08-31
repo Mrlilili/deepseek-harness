@@ -31,7 +31,6 @@ import type {
   WorkspaceOrderValue,
   WorkspaceRenameRequest,
   WorkspaceSetPinnedRequest,
-  WorkspaceError,
   WorkspaceId,
   WorkspaceValue,
   WorkspaceView,

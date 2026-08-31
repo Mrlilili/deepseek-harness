@@ -234,7 +234,7 @@ describe('WorkspaceController commands', () => {
     const unpinned = await controller.setPinned({ workspaceId: created.workspace.workspaceId, pinned: false })
     expect(unpinned.workspace.pinnedAt).toBeUndefined()
     await expect(controller.setPinned({ workspaceId: 'missing' as WorkspaceId, pinned: true }))
-      .rejects.toMatchObject({ failure: { code: 'workspace-not-found' } })
+      .rejects.toMatchObject({ code: 'workspace/not-found' })
   })
 })
 

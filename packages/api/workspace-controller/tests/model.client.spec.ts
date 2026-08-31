@@ -333,9 +333,9 @@ describe('ClientWorkspaceModel', () => {
     })
     expect(model.getSnapshot().items[0]?.pinnedAt).toBe('2026-01-02T00:00:00.000Z')
 
-    remote.onSetPinned = () => Promise.resolve(workspaceError({
-      code: 'workspace-not-found', message: 'gone', details: { workspaceId: wid('one') },
-    }))
+    remote.onSetPinned = () => Promise.resolve(workspaceError(
+      new RemoteError('workspace/not-found', 'gone', { workspaceId: wid('one') }),
+    ))
     await expect(model.setPinned(wid('one'), false)).resolves.toMatchObject({ ok: false })
     expect(model.getSnapshot().items[0]?.pinnedAt).toBe('2026-01-02T00:00:00.000Z')
   })

@@ -184,7 +184,7 @@ export class FakeApiClient {
     () => Promise.resolve(ok({ workspace: fakeWorkspace('fk-ws') }))
 
   onWorkspaceSetPinned: (payload: unknown) => Promise<RemoteResult<{ workspace: WorkspaceView }>> =
-    payload => Promise.resolve(remoteOk({
+    payload => Promise.resolve(ok({
       workspace: {
         ...fakeWorkspace('fk-ws'),
         ...(payload as { pinned: boolean }).pinned
