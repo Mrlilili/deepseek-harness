@@ -948,3 +948,29 @@ export const IconPinOutline16 = ({ size = 16, className }: IconProps) => (
     <path d="M8 10.75v3.6" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
   </svg>
 )
+
+/** chevrons_up_outline_16 — the collapse-all toolbar affordance (two upward chevrons). */
+export const IconChevronsUpOutline16 = ({ size = 16, className }: IconProps) => (
+  <svg width={size} height={size} className={className} viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path
+      d="M4 8L8 4L12 8M4 12L8 8L12 12"
+      stroke="currentColor"
+      strokeWidth="1.4"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+)
+
+/** chevrons_down_outline_16 — the expand-all toolbar affordance (two downward chevrons). */
+export const IconChevronsDownOutline16 = ({ size = 16, className }: IconProps) => (
+  <svg width={size} height={size} className={className} viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path
+      d="M4 4L8 8L12 4M4 8L8 12L12 8"
+      stroke="currentColor"
+      strokeWidth="1.4"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+)
