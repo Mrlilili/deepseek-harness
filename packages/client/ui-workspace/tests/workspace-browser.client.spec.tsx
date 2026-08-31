@@ -848,8 +848,9 @@ describe('WorkspaceBrowser', () => {
     expect(screen.queryByText('beta-6')).toBeNull()
     expect(screen.getByRole('button', { name: '展开其余 6 个会话' })).toBeTruthy()
     expect(screen.getByRole('button', { name: '展开其余 12 个会话' })).toBeTruthy()
-  })
 
+
+  })
   it('folds and opens every Workspace plus the Ungrouped bucket from one header toggle', () => {
     const b = mount({
       useSessions: hook(sessionState([summary('alpha-s', 3), summary('beta-s', 2), summary('loose-s', 1)])),
