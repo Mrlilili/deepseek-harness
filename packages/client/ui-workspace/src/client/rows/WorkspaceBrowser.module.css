@@ -34,7 +34,7 @@
   background: var(--dsw-alias-interactive-bg-hover);
 }
 
-/* Section header: title, an inline search control, and the two trailing
+/* Section header: title, an inline search control, and the three trailing
    actions. Expanding search collapses the action cluster and takes its room. */
 .sectionHeader {
   flex: none;
@@ -106,7 +106,8 @@
   display: flex;
   align-items: center;
   gap: 4px;
-  max-width: 60px;
+  /* Three 28px icon buttons (view options, collapse/expand, add) plus gaps. */
+  max-width: 92px;
   opacity: 1;
   overflow: hidden;
   visibility: visible;

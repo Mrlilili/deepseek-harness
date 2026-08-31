@@ -35,6 +35,7 @@ type WorkspaceViewActions = {
   setGroupBy: (draft: WorkspaceViewState, mode: SessionGroupBy) => void
   setOrderBy: (draft: WorkspaceViewState, mode: SessionOrderBy) => void
   setGroupExpanded: (draft: WorkspaceViewState, key: string, expanded: boolean) => void
+  setGroupsExpanded: (draft: WorkspaceViewState, keys: readonly string[], expanded: boolean) => void
   retainAccountKeys: (draft: WorkspaceViewState, workspaceKeys: readonly string[]) => void
   syncSessionOrderAccount: (
     draft: WorkspaceViewState,
@@ -63,6 +64,9 @@ export function createWorkspaceViewStore(): EngineStoreHandle<WorkspaceViewState
       setGroupBy: (d, mode: SessionGroupBy) => { d.groupBy = mode },
       setOrderBy: (d, mode: SessionOrderBy) => { d.orderBy = mode },
       setGroupExpanded: (d, key: string, expanded: boolean) => { d.groupExpansion[key] = expanded },
+      setGroupsExpanded: (d, keys: readonly string[], expanded: boolean) => {
+        for (const key of keys) d.groupExpansion[key] = expanded
+      },
       retainAccountKeys: (d, workspaceKeys: readonly string[]) => {
         const retained = new Set(workspaceKeys)
         d.groupExpansion = Object.fromEntries(

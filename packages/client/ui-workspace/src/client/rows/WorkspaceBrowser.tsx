@@ -12,8 +12,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import clsx from 'clsx'
 import {
-  Button, IconCloseFill14, IconPersonalizationOutline16,
-  IconProjectAddOutline16, IconSearchOutline16, Menu, Modal, Tooltip,
+  Button, IconChevronsDownOutline16, IconChevronsUpOutline16, IconCloseFill14,
+  IconPersonalizationOutline16, IconProjectAddOutline16, IconSearchOutline16, Menu, Modal, Tooltip,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type {
   SessionListState, SessionSearchResultItem,
@@ -311,6 +311,12 @@ function SessionTree({
     () => Object.entries(groupExpansion).filter(([, expanded]) => expanded).map(([key]) => key),
     [groupExpansion],
   )
+  // A folded group carries no "show all sessions" transient. The toolbar
+  // collapse-all writes groupExpansion without the chevron handler, so the
+  // invariant lives here once and covers both collapse paths.
+  useEffect(() => {
+    setExpandedSessionGroups(keys => keys.filter(key => expandedGroups.includes(key)))
+  }, [expandedGroups])
   const ungroupedSessionIds = useMemo(() => {
     const accounted = new Set(workspaces.flatMap(workspace => workspace.sessionIds))
     return list.ids.filter((id: SessionId) => list.byId[id] !== undefined && !accounted.has(id))
@@ -526,9 +532,6 @@ function SessionTree({
                 home={home}
                 t={t}
                 onToggle={() => {
-                  if (group.expanded) {
-                    setExpandedSessionGroups(keys => keys.filter(key => key !== group.key))
-                  }
                   setGroupExpanded(group.key, !group.expanded)
                 }}
                 onCreate={() => {
@@ -882,6 +885,13 @@ export function WorkspaceBrowser({
   const groupExpansion = useStore(s => s.groupExpansion)
   const sessionOrderByAccount = useStore(s => s.sessionOrderByAccount)
   const sessionUpdatedAtByAccount = useStore(s => s.sessionUpdatedAtByAccount)
+  // Every group the grouped view can fold: each real Workspace plus the
+  // browser-local Ungrouped bucket. The toolbar toggle flips them as one unit.
+  const groupKeys = useMemo(
+    () => [UNGROUPED_KEY, ...workspaces.map(workspace => workspace.workspaceId as string)],
+    [workspaces],
+  )
+  const anyGroupExpanded = groupKeys.some(key => groupExpansion[key] === true)
   const currentBlankSessionId = useSessions((state) => {
     const current = state.current
     return current !== undefined && state.byId[current]?.blank === true ? current : undefined
@@ -1201,6 +1211,20 @@ export function WorkspaceBrowser({
               onOrderPick={(mode) => { actions.setOrderBy(mode) }}
               t={t}
             />
+          )}
+          {/* Fold/open every group in one gesture. The label and glyph flip
+              with the grouped view's fold state: one action, not two buttons. */}
+          {wide && groupBy === 'workspace' && workspaces.length > 0 && (
+            <Tooltip label={t(anyGroupExpanded ? 'workspace.collapseAll' : 'workspace.expandAll')} side="bottom" delayMs={500}>
+              <button
+                type="button"
+                className={css.iconButton}
+                aria-label={t(anyGroupExpanded ? 'workspace.collapseAll' : 'workspace.expandAll')}
+                onClick={() => { actions.setGroupsExpanded(groupKeys, !anyGroupExpanded) }}
+              >
+                {anyGroupExpanded ? <IconChevronsUpOutline16 /> : <IconChevronsDownOutline16 />}
+              </button>
+            </Tooltip>
           )}
           {/* Adding is the button's one action, so a composition with no
               picking affordance has nothing to offer here: the region hides the

@@ -312,6 +312,25 @@ describe('WorkspaceBrowser', () => {
     expect(screen.getByRole('button', { name: '展开其余 2 个会话' })).toBeTruthy()
   })
 
+  it('folds and opens every Workspace plus the Ungrouped bucket from one header toggle', () => {
+    const b = mount({
+      useSessions: hook(sessionState([summary('alpha-s', 3), summary('beta-s', 2), summary('loose-s', 1)])),
+      useWorkspaces: hook(workspaceState([workspace('alpha', ['alpha-s']), workspace('beta', ['beta-s'])])),
+    })
+    // All groups folded by default: the header offers the expand-all gesture.
+    fireEvent.click(screen.getByRole('button', { name: '全部展开' }))
+    expect(b.store.getSnapshot().groupExpansion).toEqual({ alpha: true, beta: true, '': true })
+    expect(screen.getByText('alpha-s')).toBeTruthy()
+    expect(screen.getByText('beta-s')).toBeTruthy()
+    expect(screen.getByText('loose-s')).toBeTruthy()
+
+    fireEvent.click(screen.getByRole('button', { name: '全部折叠' }))
+    expect(b.store.getSnapshot().groupExpansion).toEqual({ alpha: false, beta: false, '': false })
+    expect(screen.queryByText('alpha-s')).toBeNull()
+    expect(screen.queryByText('beta-s')).toBeNull()
+    expect(screen.queryByText('loose-s')).toBeNull()
+  })
+
   it('keeps the blank New Session outside the five-row folding quota', () => {
     const ordinary = Array.from({ length: 6 }, (_, index) => summary(`session-${index + 1}`, 6 - index))
     const blank = summary('blank', 7, { blank: true })
