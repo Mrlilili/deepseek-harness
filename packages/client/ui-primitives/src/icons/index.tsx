@@ -1610,3 +1610,35 @@ export const IconMicrophoneOutlineRegular = (props: IconProps) => (
 export const IconMicrophoneOutlineMedium = (props: IconProps) => (
   <IconMicrophoneOutlineArtwork {...props} strokeWidth={ICON_MEDIUM_STROKE} />
 )
+
+const IconChevronsUpOutlineArtwork = ({ size = 14, className, strokeWidth }: WeightedIconProps) => (
+  <svg width={size} height={size} className={className} viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" strokeWidth={strokeWidth}>
+    <path d="M4.5 8.5L8 5L11.5 8.5M4.5 12L8 8.5L11.5 12" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+)
+
+/** Regular one-pixel IconChevronsUpOutline artwork. */
+export const IconChevronsUpOutlineRegular = (props: IconProps) => (
+  <IconChevronsUpOutlineArtwork {...props} strokeWidth={ICON_REGULAR_STROKE} />
+)
+
+/** Medium IconChevronsUpOutline artwork with a 1.3px stroke. */
+export const IconChevronsUpOutlineMedium = (props: IconProps) => (
+  <IconChevronsUpOutlineArtwork {...props} strokeWidth={ICON_MEDIUM_STROKE} />
+)
+
+const IconChevronsDownOutlineArtwork = ({ size = 14, className, strokeWidth }: WeightedIconProps) => (
+  <svg width={size} height={size} className={className} viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" strokeWidth={strokeWidth}>
+    <path d="M4.5 4L8 7.5L11.5 4M4.5 7.5L8 11L11.5 7.5" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+)
+
+/** Regular one-pixel IconChevronsDownOutline artwork. */
+export const IconChevronsDownOutlineRegular = (props: IconProps) => (
+  <IconChevronsDownOutlineArtwork {...props} strokeWidth={ICON_REGULAR_STROKE} />
+)
+
+/** Medium IconChevronsDownOutline artwork with a 1.3px stroke. */
+export const IconChevronsDownOutlineMedium = (props: IconProps) => (
+  <IconChevronsDownOutlineArtwork {...props} strokeWidth={ICON_MEDIUM_STROKE} />
+)
