@@ -236,6 +236,30 @@ describe('deriveGroups', () => {
     ).items[0]).toMatchObject({ id: parent.id, runningSubagentCount: 2 })
   })
 
+  it('marks a group running from own or descendant activity, even while folded', () => {
+    const own = { ...summary('own', 1), running: true }
+    const ownFold = deriveGroups(
+      list(own), [workspace('own-proj', ['own'])], noArchive, noAttention, view(),
+    )
+    expect(ownFold[0]!.hasRunningActivity).toBe(true)
+    expect(ownFold[0]!.sessions).toEqual([]) // folded: the fact derives from members, not rendered rows
+
+    const parent = summary('parent', 1)
+    const subagent = {
+      ...summary('subagent', 3), parentId: parent.id, origin: 'subagent' as const, running: true,
+    }
+    const delegatedFold = deriveGroups(
+      list(parent, subagent), [workspace('delegated-proj', ['parent', 'subagent'])],
+      noArchive, noAttention, view(),
+    )
+    expect(delegatedFold[0]!.hasRunningActivity).toBe(true)
+
+    const idle = deriveGroups(
+      list(summary('quiet', 1)), [workspace('plain', ['quiet'])], noArchive, noAttention, view(),
+    )
+    expect(idle[0]!.hasRunningActivity).toBe(false)
+  })
+
   it('ignores fork lineage and sorts every ungrouped session as a top-level row', () => {
     const parent = summary('parent', 1)
     const oldChild = { ...summary('old-child', 10), parentId: parent.id }

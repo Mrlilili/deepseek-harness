@@ -77,6 +77,8 @@ export interface GroupNode {
   expanded: boolean
   /** The group contains the selected session (active folder tint; supplied here so the renderer never scans). */
   containsCurrent: boolean
+  /** Any visible member runs (own or uninterrupted descendant activity); the folded header hoists one spinner. */
+  hasRunningActivity: boolean
   /** Visible session rows (empty while the group is folded). */
   sessions: readonly SessionNode[]
 }
@@ -318,6 +320,12 @@ export function deriveGroups(
   const groups: GroupNode[] = []
   for (const g of groupByWorkspace(list, workspaces, archived, view.ungroupedOrder)) {
     const expanded = expandedGroups.has(g.key)
+    // A folded group renders no session rows, so its own derivation carries the
+    // "something is running" fact from every visible member (own loop or an
+    // uninterrupted subagent descendant) for the header to hoist one spinner.
+    const hasRunningActivity = g.sessions.some(session => (
+      session.running || (descendants.get(session.id)?.runningCount ?? 0) > 0
+    ))
     groups.push({
       key: g.key,
       workspaceId: g.workspaceId,
@@ -328,6 +336,7 @@ export function deriveGroups(
       sessionCount: g.sessions.length,
       expanded,
       containsCurrent: g.key === currentGroup,
+      hasRunningActivity,
       sessions: expanded
         ? g.sessions.map(session => sessionNode(session, descendants, pendingInteractions))
         : [],

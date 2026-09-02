@@ -8,7 +8,7 @@
 import { useEffect, useRef, useState } from 'react'
 import clsx from 'clsx'
 import {
-HoverCard, IconAlarmClockOutline16, IconArchiveOutline20, IconBranchOutline16,
+  HoverCard, IconAlarmClockOutline16, IconArchiveOutline20, IconBranchOutline16,
   IconEditOutline16, IconEllipsisOutline16, IconFolderClose16, IconFolderOpen16,
   IconPinOutline16, IconPlusOutline16, IconTrashOutline16, IconTriangleRightFill14, Menu,
   relativeTime, StateDot,
@@ -153,6 +153,14 @@ export function ProjectRowItem({ group, onToggle, onCreate, actions, drag, home,
       <span className={clsx(css.slot, css.chevron)}>
         <IconTriangleRightFill14 className={clsx(css.arrow, row.expanded && css.arrowOpen)} />
       </span>
+      {/* A folded group hides every session row, so in-flight activity rides the
+          directory name instead: one spinning dot ahead of the title. */}
+      {!row.expanded && row.hasRunningActivity && (
+        <span className={css.slot}>
+          <StateDot state="ongoing" />
+          <span className={css.visuallyHidden}>{t('status.running')}</span>
+        </span>
+      )}
       <span className={css.projectText}>
         <span className={css.title}>{label}</span>
       </span>
