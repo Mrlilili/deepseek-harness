@@ -246,6 +246,14 @@ export function ProjectRowItem({ group, containsCurrentDescendant = false, onTog
       <span className={clsx(css.slot, css.chevron)}>
         <IconTriangleRightFillRegular className={clsx(css.arrow, row.expanded && css.arrowOpen)} />
       </span>
+      {/* A folded group hides every session row, so in-flight activity rides the
+          directory name instead: one spinning dot ahead of the title. */}
+      {!row.expanded && row.hasRunningActivity && (
+        <span className={css.slot}>
+          <StateDot state="ongoing" />
+          <span className={css.visuallyHidden}>{t('status.running')}</span>
+        </span>
+      )}
       <span className={css.projectText}>
         <span className={css.title}>{label}</span>
       </span>
