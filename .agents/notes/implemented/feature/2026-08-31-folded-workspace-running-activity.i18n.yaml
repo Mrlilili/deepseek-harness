@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-31-folded-workspace-running-activity.md
-2026-08-31-folded-workspace-running-activity.md: a9bdf1853e395ed6382e3b8855896caeee5a35a8
-2026-08-31-folded-workspace-running-activity.zh.md: 0f3840cf52f9e2e1cb868ed264b7a65644fae2dd
+2026-08-31-folded-workspace-running-activity.md: b4f63c5595e809af9eaf72c0708a1f80bc8430af
+2026-08-31-folded-workspace-running-activity.zh.md: c99d953b62a8a6bcbb293b4bcd1ab5aecf1aaf6e

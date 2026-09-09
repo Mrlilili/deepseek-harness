@@ -14,7 +14,7 @@ Status: implemented
 
 链路上新增一个一元动词 `workspace/setPinned({ workspaceId, pinned })`,返回更新后的 `WorkspaceView` 投影,该投影现在携带可选的 `pinnedAt` 字段。`follow()` 流把置顶当作普通记录变更发布:一条 `upsert` 增量,重连的客户端经 baseline 收敛。没有新增流帧类型。
 
-浏览器在渲染时应用置顶:`deriveGroups` 把置顶 Workspace 划分到未置顶之前,每个分区内保持稳定的 Host 顺序,树节点标记每个分组 `pinned`。Workspace 行菜单承载置顶/取消置顶操作(标签随状态翻转),不经对话框直接提交,并在行上保留持久的置顶角标;失败保持非致命的控制台诊断,与重排序拒绝一致。记录 schema 扩展是增量的,`workspace` 领域停留在版本 2,字段存在之前写入的记录解析为未置顶。浏览器本地视图状态的归属划分(持久化顺序 vs 呈现偏好)见 [sidebar order and folding Agent Note](2026-08-11-workspace-sidebar-order-and-folding.zh.md);置顶状态归属持久化一侧,而置顶优先的分区仍是渲染规则。
+浏览器在渲染时应用置顶:`deriveGroups` 把置顶 Workspace 划分到未置顶之前,每个分区内保持稳定的 Host 顺序,树节点标记每个分组 `pinned`。Workspace 行菜单承载置顶/取消置顶操作(标签随状态翻转),不经对话框直接提交,并在行上保留持久的置顶角标;失败保持非致命的控制台诊断,与重排序拒绝一致。记录 schema 扩展是增量的,`workspace` 领域停留在版本 2,字段存在之前写入的记录解析为未置顶。浏览器本地视图状态的归属划分(持久化顺序 vs 呈现偏好)见 [sidebar order and folding Agent Note](../../archived/feature/2026-08-11-workspace-sidebar-order-and-folding.md);置顶状态归属持久化一侧,而置顶优先的分区仍是渲染规则。
 
 ## Alternatives considered
 
