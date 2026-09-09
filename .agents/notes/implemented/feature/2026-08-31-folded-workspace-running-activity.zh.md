@@ -35,4 +35,4 @@ Status: implemented
 
 ## Related
 
-- [Workspace Sidebar Order and Folding](2026-08-11-workspace-sidebar-order-and-folding.zh.md)
+- [Workspace Sidebar Order and Folding](../../archived/feature/2026-08-11-workspace-sidebar-order-and-folding.md)
